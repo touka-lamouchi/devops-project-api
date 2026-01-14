@@ -128,6 +128,10 @@ def internal_error(error):
     logger.error("Internal server error", extra={'request_id': getattr(request, 'request_id', 'unknown')})
     return jsonify({"error": "Internal server error"}), 500
 
+import os
+
 if __name__ == '__main__':
     logger.info("Starting DevOps API server on port 5000")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Debug seulement en développement local
+    debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(host='0.0.0.0', port=5000, debug=debug_mode)
