@@ -77,6 +77,9 @@ jobs:
   dast-security-scan:
     needs: docker-build-test-and-push
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     
     steps:
     - name: Checkout code
@@ -101,6 +104,8 @@ jobs:
         target: 'http://localhost:5000'
         rules_file_name: '.zap/rules.tsv'
         cmd_options: '-a'
+        issue_title: 'OWASP ZAP Security Scan Results'
+        fail_action: false
     
     - name: Verify ZAP report
       if: always()
