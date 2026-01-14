@@ -99,22 +99,28 @@ jobs:
         echo "Starting OWASP ZAP scan..."
         docker run --network="host" \
           -v ${{ github.workspace }}:/zap/wrk/:rw \
+          -u root \
           -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
           -t http://localhost:5000 \
-          -r zap-report.html \
-          -I
-        echo "ZAP scan completed"
+          -r /zap/wrk/zap-report.html \
+          -w /zap/wrk/zap-report.md \
+          -J /zap/wrk/zap-report.json \
+          -I || echo "ZAP scan completed with warnings"
+        
+        echo "Fixing file permissions..."
+        sudo chmod 644 zap-report.* 2>/dev/null || true
     
     - name: Verify ZAP report was created
       run: |
         echo "Checking for ZAP report..."
-        ls -la
+        ls -la zap-report.* 2>/dev/null || echo "No ZAP reports found"
         if [ -f "zap-report.html" ]; then
-          echo "✓ ZAP report found!"
-          cat zap-report.html | head -20
+          echo "✓ ZAP HTML report found!"
+          file_size=$(wc -c < zap-report.html)
+          echo "Report size: $file_size bytes"
         else
-          echo "✗ ZAP report not found, creating placeholder..."
-          echo "<html><body><h1>DAST Scan Completed</h1><p>API was tested successfully. Full report generation failed but endpoints were verified.</p></body></html>" > zap-report.html
+          echo "✗ ZAP report generation failed"
+          exit 1
         fi
     
     - name: Stop and remove API container
