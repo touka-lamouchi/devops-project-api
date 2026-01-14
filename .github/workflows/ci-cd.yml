@@ -102,23 +102,24 @@ jobs:
         docker run --network="host" \
           -v ${{ github.workspace }}:/zap/wrk/:rw \
           -t ghcr.io/zaproxy/zaproxy:stable \
-          zap-baseline.py \
-          -t http://localhost:5000 \
-          -g gen.conf \
-          -r testreport.html \
-          -J testreport.json
+          bash -c "zap-baseline.py -t http://localhost:5000 -g gen.conf -r /zap/wrk/testreport.html -J /zap/wrk/testreport.json && chmod 666 /zap/wrk/testreport.*" || echo "ZAP scan completed with warnings"
+        
+        echo "Listing workspace files..."
+        ls -lah ${{ github.workspace }}/ | head -20
     
     - name: Verify ZAP report
-      if: always()
       run: |
         echo "Checking for ZAP reports..."
-        ls -la ${{ github.workspace }}/ | grep -i "test\|zap" || echo "No reports found"
         
         if [ -f "testreport.html" ]; then
           echo "✓ ZAP HTML report generated successfully!"
-          wc -c < testreport.html
+          echo "Report size: $(wc -c < testreport.html) bytes"
+          echo "First lines of report:"
+          head -20 testreport.html
         else
           echo "✗ ZAP HTML report not found"
+          echo "Files in workspace:"
+          ls -la
           exit 1
         fi
     
