@@ -90,8 +90,10 @@ jobs:
         docker run -d -p 5000:5000 --name dast-test-container toukalamouchi/devops-api:latest
         sleep 10
         echo "Testing API health..."
-        curl http://localhost:5000/health || exit 1
+        curl -v http://localhost:5000/health || exit 1
         echo "API is ready for DAST scanning"
+        echo "Available endpoints:"
+        curl -s http://localhost:5000/health
     
     - name: Run OWASP ZAP Baseline Scan
       continue-on-error: true
@@ -99,27 +101,24 @@ jobs:
         echo "Starting OWASP ZAP scan..."
         docker run --network="host" \
           -v ${{ github.workspace }}:/zap/wrk/:rw \
-          -u root \
-          -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+          -t ghcr.io/zaproxy/zaproxy:stable \
+          zap-baseline.py \
           -t http://localhost:5000 \
-          -r /zap/wrk/zap-report.html \
-          -w /zap/wrk/zap-report.md \
-          -J /zap/wrk/zap-report.json \
-          -I || echo "ZAP scan completed with warnings"
-        
-        echo "Fixing file permissions..."
-        sudo chmod 644 zap-report.* 2>/dev/null || true
+          -g gen.conf \
+          -r testreport.html \
+          -J testreport.json
     
-    - name: Verify ZAP report was created
+    - name: Verify ZAP report
+      if: always()
       run: |
-        echo "Checking for ZAP report..."
-        ls -la zap-report.* 2>/dev/null || echo "No ZAP reports found"
-        if [ -f "zap-report.html" ]; then
-          echo "✓ ZAP HTML report found!"
-          file_size=$(wc -c < zap-report.html)
-          echo "Report size: $file_size bytes"
+        echo "Checking for ZAP reports..."
+        ls -la ${{ github.workspace }}/ | grep -i "test\|zap" || echo "No reports found"
+        
+        if [ -f "testreport.html" ]; then
+          echo "✓ ZAP HTML report generated successfully!"
+          wc -c < testreport.html
         else
-          echo "✗ ZAP report generation failed"
+          echo "✗ ZAP HTML report not found"
           exit 1
         fi
     
@@ -134,4 +133,6 @@ jobs:
       if: always()
       with:
         name: zap-dast-security-report
-        path: zap-report.html
+        path: |
+          testreport.html
+          testreport.json
