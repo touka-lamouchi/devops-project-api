@@ -96,7 +96,7 @@ jobs:
         docker run --network="host" -v $(pwd):/zap/wrk/:rw \
           -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
           -t http://localhost:5000 \
-          -r zap-report.html \
+          -r /zap/wrk/zap-report.html \
           -I || true
     
     - name: Stop and remove API container
