@@ -96,31 +96,27 @@ jobs:
         curl -s http://localhost:5000/health
     
     - name: Run OWASP ZAP Baseline Scan
-      continue-on-error: true
-      run: |
-        echo "Starting OWASP ZAP scan..."
-        docker run --network="host" \
-          -v ${{ github.workspace }}:/zap/wrk/:rw \
-          -t ghcr.io/zaproxy/zaproxy:stable \
-          bash -c "zap-baseline.py -t http://localhost:5000 -g gen.conf -r /zap/wrk/testreport.html -J /zap/wrk/testreport.json && chmod 666 /zap/wrk/testreport.*" || echo "ZAP scan completed with warnings"
-        
-        echo "Listing workspace files..."
-        ls -lah ${{ github.workspace }}/ | head -20
+      uses: zaproxy/action-baseline@v0.12.0
+      with:
+        target: 'http://localhost:5000'
+        rules_file_name: '.zap/rules.tsv'
+        cmd_options: '-a'
     
     - name: Verify ZAP report
+      if: always()
       run: |
         echo "Checking for ZAP reports..."
+        ls -la
         
-        if [ -f "testreport.html" ]; then
-          echo "✓ ZAP HTML report generated successfully!"
-          echo "Report size: $(wc -c < testreport.html) bytes"
-          echo "First lines of report:"
-          head -20 testreport.html
+        if [ -f "report_html.html" ]; then
+          echo "✓ ZAP HTML report generated!"
+          mv report_html.html zap-report.html
+        elif [ -f "zap_report.html" ]; then
+          echo "✓ ZAP report found!"
+          mv zap_report.html zap-report.html
         else
-          echo "✗ ZAP HTML report not found"
-          echo "Files in workspace:"
-          ls -la
-          exit 1
+          echo "⚠ No ZAP HTML report found, checking all files..."
+          find . -name "*.html" -type f
         fi
     
     - name: Stop and remove API container
@@ -135,5 +131,6 @@ jobs:
       with:
         name: zap-dast-security-report
         path: |
-          testreport.html
-          testreport.json
+          zap-report.html
+          report_html.html
+          report_json.json
