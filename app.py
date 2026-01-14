@@ -4,6 +4,7 @@ from prometheus_flask_exporter import PrometheusMetrics
 from pythonjsonlogger import jsonlogger
 import logging
 import uuid
+import os  
 from datetime import datetime
 
 # Configuration du logging structuré
@@ -128,10 +129,9 @@ def internal_error(error):
     logger.error("Internal server error", extra={'request_id': getattr(request, 'request_id', 'unknown')})
     return jsonify({"error": "Internal server error"}), 500
 
-import os
-
 if __name__ == '__main__':
-    logger.info("Starting DevOps API server on port 5000")
-    # Debug seulement en développement local
-    debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
-    app.run(host='0.0.0.0', port=5000, debug=debug_mode)
+    
+    debug_mode = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
+    port = int(os.getenv('PORT', 5000))
+    logger.info(f"Starting DevOps API server on port {port} (debug={debug_mode})")
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)  # nosec B104
