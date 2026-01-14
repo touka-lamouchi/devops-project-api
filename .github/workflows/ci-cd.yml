@@ -106,6 +106,7 @@ jobs:
         cmd_options: '-a'
         issue_title: 'OWASP ZAP Security Scan Results'
         fail_action: false
+        artifact_name: ''
     
     - name: Verify ZAP report
       if: always()
