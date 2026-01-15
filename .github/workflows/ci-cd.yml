@@ -102,16 +102,29 @@ jobs:
       continue-on-error: true
       run: |
         echo "Starting OWASP ZAP Baseline Scan..."
-        docker run -v $(pwd):/zap/wrk/:rw --network="host" \
+        mkdir -p zap_reports
+        docker run -v $(pwd)/zap_reports:/zap/wrk/:rw --network="host" \
+          --user root \
           -t ghcr.io/zaproxy/zaproxy:stable \
           zap-baseline.py \
           -t http://localhost:5000/health \
           -g gen.conf \
           -r zap-report.html \
           -J zap-report.json \
-          -I
+          -I || true
         
-        echo "Scan completed, checking results..."
+        echo "Scan completed, moving reports..."
+        ls -lah zap_reports/
+        
+        # Move reports to workspace root
+        if [ -f "zap_reports/zap-report.html" ]; then
+          cp zap_reports/zap-report.* . || true
+        fi
+        
+        # Change permissions
+        chmod 644 zap-report.* 2>/dev/null || true
+        
+        echo "Final check:"
         ls -lah | grep zap
     
     - name: Verify and create ZAP report
@@ -119,10 +132,15 @@ jobs:
       run: |
         if [ -f "zap-report.html" ]; then
           echo "✓ ZAP HTML report generated successfully!"
-          echo "Report size: $(stat -f%z zap-report.html 2>/dev/null || stat -c%s zap-report.html) bytes"
+          echo "Report size: $(stat -c%s zap-report.html) bytes"
+          echo "Preview:"
+          head -20 zap-report.html
         else
-          echo "⚠ Report not found, checking directory..."
-          ls -la
+          echo "⚠ Report not found in workspace root"
+          echo "Checking zap_reports directory:"
+          ls -lah zap_reports/ || echo "Directory not found"
+          echo "Workspace root:"
+          ls -lah
         fi
     
     - name: Stop and remove API container
