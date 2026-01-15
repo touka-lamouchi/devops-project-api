@@ -298,9 +298,6 @@ Structured JSON logging with request IDs:
 4. Push to the branch
 5. Create a Pull Request
 
-## 📄 License
-
-This project is for educational purposes.
 
 ## 👤 Author
 
@@ -308,13 +305,3 @@ This project is for educational purposes.
 - GitHub: [@touka-lamouchi](https://github.com/touka-lamouchi)
 - Docker Hub: [toukalamouchi](https://hub.docker.com/u/toukalamouchi)
 
-## 🎯 Future Enhancements
-
-- [ ] Grafana dashboards for visualization
-- [ ] Horizontal Pod Autoscaling (HPA)
-- [ ] Ingress controller
-- [ ] Persistent storage with PostgreSQL
-- [ ] Rate limiting
-- [ ] API authentication/authorization
-- [ ] Helm charts
-- [ ] ArgoCD GitOps deployment
