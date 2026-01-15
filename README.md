@@ -25,18 +25,23 @@ A production-ready Flask REST API with complete DevOps pipeline including Docker
 ## 🏗️ Architecture
 
 ```
-├── app.py                 # Flask application
-├── requirements.txt       # Python dependencies
-├── Dockerfile            # Production Docker image
-├── docker-compose.yml    # Local development setup
+├── app.py                          # Flask application
+├── requirements.txt                # Python dependencies
+├── Dockerfile                      # Production Docker image
+├── docker-compose.yml              # Local development setup
 ├── .github/
 │   └── workflows/
-│       └── ci-cd.yml     # CI/CD pipeline
-└── k8s/                  # Kubernetes manifests
-    ├── namespace.yaml
-    ├── configmap.yaml
-    ├── deployment.yaml
-    └── service.yaml
+│       └── ci-cd.yml              # CI/CD pipeline
+└── k8s/                           # Kubernetes manifests
+    ├── namespace.yaml             # Namespace isolation
+    ├── configmap.yaml             # App configuration
+    ├── deployment.yaml            # API deployment
+    ├── service.yaml               # API service
+    ├── prometheus-config.yaml     # Prometheus config
+    ├── prometheus-deployment.yaml # Prometheus deployment
+    ├── prometheus-service.yaml    # Prometheus service
+    ├── grafana-deployment.yaml    # Grafana deployment
+    └── grafana-service.yaml       # Grafana service
 ```
 
 ## 🛠️ Installation & Setup
@@ -212,20 +217,46 @@ The GitHub Actions workflow automatically:
 - **No debug mode** in production
 - **Resource limits** in Kubernetes
 
-## 📊 Monitoring
+## 📊 Monitoring & Observability
 
-### Prometheus Metrics
-Access metrics at `/metrics` endpoint:
-- Request latency (histogram)
-- Request count by status code
-- Python GC statistics
-- Process memory and CPU usage
+### Prometheus + Grafana Stack
 
-### Key Metrics
-- `flask_http_request_duration_seconds` - Request duration
-- `flask_http_request_total` - Total requests
+The project includes a complete monitoring stack deployed in Kubernetes:
+
+**Prometheus** - Metrics collection and storage
+- Automatically scrapes `/metrics` from the API every 15 seconds
+- Access: `kubectl port-forward -n devops-api service/prometheus 9090:9090`
+- URL: `http://localhost:9090`
+
+**Grafana** - Metrics visualization and dashboards
+- Pre-configured to use Prometheus as data source
+- Access: `kubectl port-forward -n devops-api service/grafana 3000:3000`
+- URL: `http://localhost:3000`
+- Default credentials: `admin` / `admin`
+
+### Available Metrics
+
+Access raw metrics at `/metrics` endpoint:
+- `flask_http_request_duration_seconds` - Request duration histogram
+- `flask_http_request_total` - Total requests by status code
 - `process_resident_memory_bytes` - Memory usage
 - `process_cpu_seconds_total` - CPU time
+- `python_gc_*` - Python garbage collection stats
+
+### Setting up Grafana Dashboard
+
+1. Port-forward Grafana: `kubectl port-forward -n devops-api service/grafana 3000:3000`
+2. Open `http://localhost:3000` (admin/admin)
+3. Add Prometheus data source:
+   - Configuration → Data Sources → Add data source
+   - Select Prometheus
+   - URL: `http://prometheus:9090`
+   - Click "Save & Test"
+4. Create dashboard with panels:
+   - HTTP Request Rate: `rate(flask_http_request_total[5m])`
+   - Request Duration (p95): `histogram_quantile(0.95, rate(flask_http_request_duration_seconds_bucket[5m]))`
+   - Memory Usage: `process_resident_memory_bytes`
+   - Active Pods: `count(up{job="devops-api"})`
 
 ## 🧪 Testing
 
