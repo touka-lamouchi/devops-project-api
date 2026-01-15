@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: devops-api-deployment
+  namespace: devops-api
   labels:
     app: devops-api
 spec:
@@ -20,9 +21,9 @@ spec:
         ports:
         - containerPort: 5000
           name: http
-        env:
-        - name: FLASK_ENV
-          value: "production"
+        envFrom:
+        - configMapRef:
+            name: devops-api-config
         resources:
           requests:
             memory: "128Mi"
