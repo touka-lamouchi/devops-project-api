@@ -103,18 +103,39 @@ def get_item(item_id: int):
 # POST create new item
 @app.route('/api/items', methods=['POST'])
 def create_item():
+    """
+    Create a new item with validation.
+    
+    Returns:
+        tuple: JSON response with created item or error, HTTP 201 or 400
+    """
     global next_id
     
     data = request.get_json()
     
-    if not data or 'name' not in data:
-        logger.error("Invalid request data", extra={'request_id': request.request_id})
+    # Validate request body exists
+    if not data:
+        logger.error("Empty request body", extra={'request_id': request.request_id})
+        return jsonify({"error": "Request body is required"}), 400
+    
+    # Validate required fields
+    if 'name' not in data:
+        logger.error("Missing required field: name", extra={'request_id': request.request_id})
         return jsonify({"error": "Name is required"}), 400
+    
+    # Validate field types and constraints
+    if not isinstance(data['name'], str) or len(data['name'].strip()) == 0:
+        logger.error("Invalid name field", extra={'request_id': request.request_id})
+        return jsonify({"error": "Name must be a non-empty string"}), 400
+    
+    if 'description' in data and not isinstance(data['description'], str):
+        logger.error("Invalid description field", extra={'request_id': request.request_id})
+        return jsonify({"error": "Description must be a string"}), 400
     
     new_item = {
         "id": next_id,
-        "name": data['name'],
-        "description": data.get('description', ''),
+        "name": data['name'].strip(),
+        "description": data.get('description', '').strip(),
         "created_at": datetime.now().isoformat()
     }
     
