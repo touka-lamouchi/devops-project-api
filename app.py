@@ -22,7 +22,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Métriques Prometheus
-metrics = PrometheusMetrics(app)
+metrics = PrometheusMetrics(app, group_by='path')
 
 # Base de données en mémoire (simple liste)
 items_db = [
