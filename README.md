@@ -243,104 +243,28 @@ Access raw metrics at `/metrics` endpoint:
 - `process_cpu_seconds_total` - CPU time
 - `python_gc_*` - Python garbage collection stats
 
-### Setting up Grafana Dashboard
+### Grafana Dashboard
 
-#### Access Grafana (Windows with Minikube)
+The project includes Grafana for metrics visualization with pre-configured Prometheus data source.
 
-1. **Start Grafana service** (keep terminal open):
-   ```bash
-   minikube service grafana -n devops-api
-   ```
-   This will output a URL like `http://127.0.0.1:XXXXX`
-
-2. **Open Grafana** in your browser using the provided URL
-3. **Login** with default credentials: `admin` / `admin`
-
-#### Add Prometheus Data Source
-
-1. Click **☰** menu → **Connections** → **Data sources**
-2. Click **"Add data source"**
-3. Select **"Prometheus"**
-4. Configure:
-   - **URL**: `http://prometheus:9090`
-   - Leave other settings as default
-5. Click **"Save & Test"** - should show green ✓
-
-#### Create Monitoring Dashboard
-
-1. Click **☰** → **Dashboards** → **New** → **New Dashboard**
-2. Click **"+ Add visualization"** → Select **"prometheus"**
-
-#### Panel 1: Total Requests (Stat)
-- **Query**: `sum(flask_http_request_duration_seconds_count)`
-- **Title**: `Total Requests`
-- **Visualization**: Stat
-- Click **Apply**
-
-#### Panel 2: API Request Rate (Time Series)
-- **Query**: `sum by (path) (rate(flask_http_request_duration_seconds_count[1m]))`
-- **Title**: `API Request Rate`
-- **Visualization**: Time series
-- **Unit**: requests/sec (reqps)
-- **Style**: Lines
-- Click **Apply**
-
-#### Panel 3: Requests by Endpoint (Pie Chart)
-- **Query**: `sum by (path) (flask_http_request_duration_seconds_count)`
-- **Title**: `Requests by Endpoint`
-- **Visualization**: Pie chart
-- **Labels**: Name and Value
-- **Legend**: Show with values and percentages
-- Click **Apply**
-
-#### Panel 4: Response Time (Time Series)
-- **Query**: `rate(flask_http_request_duration_seconds_sum[1m]) / rate(flask_http_request_duration_seconds_count[1m])`
-- **Title**: `Average Response Time`
-- **Visualization**: Time series
-- **Unit**: seconds (s)
-- Click **Apply**
-
-5. **Save Dashboard**: Click 💾 icon → Name: `DevOps API Monitoring` → **Save**
-
-### Important Notes
-
-**Path Labels in Metrics**: The Flask app uses `PrometheusMetrics(app, group_by='path')` to track metrics by endpoint. This allows splitting data by `/health`, `/api/items`, etc.
-
-**Correct Metrics to Use**:
-- ✅ Use: `flask_http_request_duration_seconds_count` (has path labels)
-- ❌ Avoid: `flask_http_request_total` (no path labels)
-
-**Generate Test Traffic** (for visualization):
+**Access Grafana**:
 ```bash
-# Access API service
-minikube service devops-api-service -n devops-api
-
-# Generate requests (in new terminal)
-for ($i=1; $i -le 30; $i++) {
-    Invoke-WebRequest http://127.0.0.1:PORT/health -UseBasicParsing
-    Invoke-WebRequest http://127.0.0.1:PORT/api/items -UseBasicParsing
-}
+minikube service grafana -n devops-api
 ```
+Default credentials: `admin` / `admin`
 
-### Troubleshooting Grafana
+**Dashboard Panels**:
+- **Total Requests**: Overall request count
+- **API Request Rate**: Real-time traffic by endpoint
+- **Requests by Endpoint**: Distribution pie chart showing traffic per path
+- **Response Time**: Average response time trends
 
-**"Failed to fetch" error**:
-- The `minikube service` terminal must stay open for port forwarding
-- Restart: `minikube service grafana -n devops-api`
+**Key Metrics Queries**:
+- Request count: `sum by (path) (flask_http_request_duration_seconds_count)`
+- Request rate: `rate(flask_http_request_duration_seconds_count[1m])`
+- Response time: `rate(flask_http_request_duration_seconds_sum[1m]) / rate(flask_http_request_duration_seconds_count[1m])`
 
-**Grafana ImagePullBackOff**:
-- Minikube may have slow/no internet access
-- Solution: Pre-load image
-  ```bash
-  docker pull grafana/grafana:latest
-  minikube image load grafana/grafana:latest
-  kubectl rollout restart deployment/grafana -n devops-api
-  ```
-
-**No data in dashboards**:
-- Wait 15-30 seconds for Prometheus to scrape metrics
-- Generate traffic to API endpoints
-- Verify Prometheus is scraping: `minikube service prometheus -n devops-api` → Status → Targets
+The Flask app is configured with `PrometheusMetrics(app, group_by='path')` to enable per-endpoint monitoring.
 
 ## 🧪 Testing
 
