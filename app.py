@@ -44,6 +44,12 @@ def before_request():
 # Health check endpoint
 @app.route('/health', methods=['GET'])
 def health():
+    """
+    Health check endpoint to verify API availability.
+    
+    Returns:
+        tuple: JSON response with status and timestamp, HTTP 200
+    """
     return jsonify({
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
@@ -53,6 +59,12 @@ def health():
 # GET all items
 @app.route('/api/items', methods=['GET'])
 def get_items():
+    """
+    Retrieve all items from the database.
+    
+    Returns:
+        tuple: JSON response with items list and count, HTTP 200
+    """
     logger.info("Fetching all items", extra={'request_id': request.request_id})
     return jsonify({
         "items": items_db,
@@ -61,7 +73,16 @@ def get_items():
 
 # GET item by ID
 @app.route('/api/items/<int:item_id>', methods=['GET'])
-def get_item(item_id):
+def get_item(item_id: int):
+    """
+    Retrieve a specific item by ID.
+    
+    Args:
+        item_id (int): The ID of the item to retrieve
+        
+    Returns:
+        tuple: JSON response with item data or error, HTTP 200 or 404
+    """
     logger.info(f"Fetching item {item_id}", extra={'request_id': request.request_id})
     
     item = next((item for item in items_db if item["id"] == item_id), None)
