@@ -7,6 +7,12 @@ import uuid
 import os  
 from datetime import datetime
 
+# Configuration constants
+APP_NAME = os.getenv('APP_NAME', 'DevOps Project API')
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
+FLASK_ENV = os.getenv('FLASK_ENV', 'development')
+API_VERSION = 'v1'
+
 # Configuration du logging structuré
 logHandler = logging.StreamHandler()
 formatter = jsonlogger.JsonFormatter(
@@ -15,7 +21,7 @@ formatter = jsonlogger.JsonFormatter(
 logHandler.setFormatter(formatter)
 logger = logging.getLogger()
 logger.addHandler(logHandler)
-logger.setLevel(logging.INFO)
+logger.setLevel(getattr(logging, LOG_LEVEL.upper()))
 
 # Initialisation Flask
 app = Flask(__name__)
@@ -53,7 +59,8 @@ def health():
     return jsonify({
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "service": "devops-project-api"
+        "service": APP_NAME,
+        "version": API_VERSION
     }), 200
 
 # GET all items
