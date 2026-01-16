@@ -40,4 +40,5 @@ spec:
             cpu: "500m"
       volumes:
       - name: grafana-storage
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: grafana-pvc
