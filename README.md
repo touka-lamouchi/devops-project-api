@@ -245,18 +245,102 @@ Access raw metrics at `/metrics` endpoint:
 
 ### Setting up Grafana Dashboard
 
-1. Port-forward Grafana: `kubectl port-forward -n devops-api service/grafana 3000:3000`
-2. Open `http://localhost:3000` (admin/admin)
-3. Add Prometheus data source:
-   - Configuration → Data Sources → Add data source
-   - Select Prometheus
-   - URL: `http://prometheus:9090`
-   - Click "Save & Test"
-4. Create dashboard with panels:
-   - HTTP Request Rate: `rate(flask_http_request_total[5m])`
-   - Request Duration (p95): `histogram_quantile(0.95, rate(flask_http_request_duration_seconds_bucket[5m]))`
-   - Memory Usage: `process_resident_memory_bytes`
-   - Active Pods: `count(up{job="devops-api"})`
+#### Access Grafana (Windows with Minikube)
+
+1. **Start Grafana service** (keep terminal open):
+   ```bash
+   minikube service grafana -n devops-api
+   ```
+   This will output a URL like `http://127.0.0.1:XXXXX`
+
+2. **Open Grafana** in your browser using the provided URL
+3. **Login** with default credentials: `admin` / `admin`
+
+#### Add Prometheus Data Source
+
+1. Click **☰** menu → **Connections** → **Data sources**
+2. Click **"Add data source"**
+3. Select **"Prometheus"**
+4. Configure:
+   - **URL**: `http://prometheus:9090`
+   - Leave other settings as default
+5. Click **"Save & Test"** - should show green ✓
+
+#### Create Monitoring Dashboard
+
+1. Click **☰** → **Dashboards** → **New** → **New Dashboard**
+2. Click **"+ Add visualization"** → Select **"prometheus"**
+
+#### Panel 1: Total Requests (Stat)
+- **Query**: `sum(flask_http_request_duration_seconds_count)`
+- **Title**: `Total Requests`
+- **Visualization**: Stat
+- Click **Apply**
+
+#### Panel 2: API Request Rate (Time Series)
+- **Query**: `sum by (path) (rate(flask_http_request_duration_seconds_count[1m]))`
+- **Title**: `API Request Rate`
+- **Visualization**: Time series
+- **Unit**: requests/sec (reqps)
+- **Style**: Lines
+- Click **Apply**
+
+#### Panel 3: Requests by Endpoint (Pie Chart)
+- **Query**: `sum by (path) (flask_http_request_duration_seconds_count)`
+- **Title**: `Requests by Endpoint`
+- **Visualization**: Pie chart
+- **Labels**: Name and Value
+- **Legend**: Show with values and percentages
+- Click **Apply**
+
+#### Panel 4: Response Time (Time Series)
+- **Query**: `rate(flask_http_request_duration_seconds_sum[1m]) / rate(flask_http_request_duration_seconds_count[1m])`
+- **Title**: `Average Response Time`
+- **Visualization**: Time series
+- **Unit**: seconds (s)
+- Click **Apply**
+
+5. **Save Dashboard**: Click 💾 icon → Name: `DevOps API Monitoring` → **Save**
+
+### Important Notes
+
+**Path Labels in Metrics**: The Flask app uses `PrometheusMetrics(app, group_by='path')` to track metrics by endpoint. This allows splitting data by `/health`, `/api/items`, etc.
+
+**Correct Metrics to Use**:
+- ✅ Use: `flask_http_request_duration_seconds_count` (has path labels)
+- ❌ Avoid: `flask_http_request_total` (no path labels)
+
+**Generate Test Traffic** (for visualization):
+```bash
+# Access API service
+minikube service devops-api-service -n devops-api
+
+# Generate requests (in new terminal)
+for ($i=1; $i -le 30; $i++) {
+    Invoke-WebRequest http://127.0.0.1:PORT/health -UseBasicParsing
+    Invoke-WebRequest http://127.0.0.1:PORT/api/items -UseBasicParsing
+}
+```
+
+### Troubleshooting Grafana
+
+**"Failed to fetch" error**:
+- The `minikube service` terminal must stay open for port forwarding
+- Restart: `minikube service grafana -n devops-api`
+
+**Grafana ImagePullBackOff**:
+- Minikube may have slow/no internet access
+- Solution: Pre-load image
+  ```bash
+  docker pull grafana/grafana:latest
+  minikube image load grafana/grafana:latest
+  kubectl rollout restart deployment/grafana -n devops-api
+  ```
+
+**No data in dashboards**:
+- Wait 15-30 seconds for Prometheus to scrape metrics
+- Generate traffic to API endpoints
+- Verify Prometheus is scraping: `minikube service prometheus -n devops-api` → Status → Targets
 
 ## 🧪 Testing
 
